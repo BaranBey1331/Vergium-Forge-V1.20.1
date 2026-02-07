@@ -38,8 +38,6 @@ public class VergiumSettingsScreen extends Screen {
 
     private Category selectedCategory = Category.PERFORMANCE;
 
-    private final List<Runnable> widgetUpdaters = new ArrayList<>();
-
     public VergiumSettingsScreen(Screen parent) {
         super(Component.literal("Vergium Settings"));
         this.parent = parent;
@@ -49,12 +47,11 @@ public class VergiumSettingsScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        rebuildWidgets();
+        buildSettingsWidgets();
     }
 
-    private void rebuildWidgets() {
+    private void buildSettingsWidgets() {
         clearWidgets();
-        widgetUpdaters.clear();
 
         int centerX = this.width / 2;
         int startY = 50;
@@ -72,24 +69,33 @@ public class VergiumSettingsScreen extends Screen {
             addRenderableWidget(Button.builder(Component.literal(cat.name), btn -> {
                 selectedCategory = cat;
                 scrollOffset = 0;
-                rebuildWidgets();
+                buildSettingsWidgets();
             }).bounds(tabX, 25, tabWidth, 20).build());
         }
 
-        // Preset selector at top of content area
         startY += 5;
 
-        // Build category-specific widgets
-        int y = startY;
         int widgetWidth = 200;
         int leftX = centerX - widgetWidth - 5;
         int rightX = centerX + 5;
 
+        int y;
         switch (selectedCategory) {
-            case PERFORMANCE -> y = buildPerformanceWidgets(y, leftX, rightX, widgetWidth);
-            case RENDERING -> y = buildRenderingWidgets(y, leftX, rightX, widgetWidth);
-            case HEAT -> y = buildHeatWidgets(y, leftX, rightX, widgetWidth);
-            case ADVANCED -> y = buildAdvancedWidgets(y, leftX, rightX, widgetWidth);
+            case PERFORMANCE:
+                y = buildPerformanceWidgets(startY, leftX, rightX, widgetWidth);
+                break;
+            case RENDERING:
+                y = buildRenderingWidgets(startY, leftX, rightX, widgetWidth);
+                break;
+            case HEAT:
+                y = buildHeatWidgets(startY, leftX, rightX, widgetWidth);
+                break;
+            case ADVANCED:
+                y = buildAdvancedWidgets(startY, leftX, rightX, widgetWidth);
+                break;
+            default:
+                y = startY;
+                break;
         }
 
         contentHeight = y - startY;
@@ -104,18 +110,19 @@ public class VergiumSettingsScreen extends Screen {
         // Reset button
         addRenderableWidget(Button.builder(Component.literal("Reset"), btn -> {
             config.applyPreset(VergiumConfig.Preset.MEDIUM);
-            rebuildWidgets();
+            buildSettingsWidgets();
         }).bounds(centerX + 5, this.height - 30, 95, 20).build());
     }
 
     private int buildPerformanceWidgets(int y, int leftX, int rightX, int w) {
-        // Preset selector
-        String presetName = switch (config.getPreset()) {
-            case LOW -> "Low (Max FPS)";
-            case MEDIUM -> "Medium (Balanced)";
-            case HIGH -> "High (Quality)";
-            case CUSTOM -> "Custom";
-        };
+        String presetName;
+        switch (config.getPreset()) {
+            case LOW: presetName = "Low (Max FPS)"; break;
+            case MEDIUM: presetName = "Medium (Balanced)"; break;
+            case HIGH: presetName = "High (Quality)"; break;
+            case CUSTOM: presetName = "Custom"; break;
+            default: presetName = "Unknown"; break;
+        }
 
         addRenderableWidget(Button.builder(
             Component.literal("Preset: " + presetName),
@@ -123,12 +130,11 @@ public class VergiumSettingsScreen extends Screen {
                 VergiumConfig.Preset[] presets = VergiumConfig.Preset.values();
                 int idx = (config.getPreset().ordinal() + 1) % presets.length;
                 config.applyPreset(presets[idx]);
-                rebuildWidgets();
+                buildSettingsWidgets();
             }
         ).bounds(leftX, y, w * 2 + 10, 20).build());
         y += 28;
 
-        // FPS Boost toggle
         addRenderableWidget(new VergiumToggleButton(
             leftX, y, w, 20,
             "FPS Boost",
@@ -188,7 +194,6 @@ public class VergiumSettingsScreen extends Screen {
     private int buildRenderingWidgets(int y, int leftX, int rightX, int w) {
         int fullWidth = w * 2 + 10;
 
-        // Entity Render Distance slider
         addRenderableWidget(new VergiumSlider(
             leftX, y, fullWidth, 20,
             "Entity Render Distance",
@@ -198,7 +203,6 @@ public class VergiumSettingsScreen extends Screen {
         ));
         y += 28;
 
-        // Max Particles slider
         addRenderableWidget(new VergiumSlider(
             leftX, y, fullWidth, 20,
             "Max Particles",
@@ -208,7 +212,6 @@ public class VergiumSettingsScreen extends Screen {
         ));
         y += 28;
 
-        // Chunk Update Limit slider
         addRenderableWidget(new VergiumSlider(
             leftX, y, fullWidth, 20,
             "Chunk Update Limit",
@@ -218,7 +221,6 @@ public class VergiumSettingsScreen extends Screen {
         ));
         y += 28;
 
-        // Cull Distance slider
         addRenderableWidget(new VergiumSlider(
             leftX, y, fullWidth, 20,
             "Cull Distance",
@@ -228,13 +230,12 @@ public class VergiumSettingsScreen extends Screen {
         ));
         y += 28;
 
-        // LOD Bias button (cycle)
-        String lodText = switch ((int)(config.getLodBias() * 10)) {
-            case 5 -> "Aggressive";
-            case 10 -> "Normal";
-            case 20 -> "Quality";
-            default -> String.format("%.1f", config.getLodBias());
-        };
+        String lodText;
+        int lodVal = (int)(config.getLodBias() * 10);
+        if (lodVal <= 5) lodText = "Aggressive";
+        else if (lodVal <= 10) lodText = "Normal";
+        else lodText = "Quality";
+
         addRenderableWidget(Button.builder(
             Component.literal("LOD Bias: " + lodText),
             btn -> {
@@ -243,7 +244,7 @@ public class VergiumSettingsScreen extends Screen {
                 else if (current <= 1.0f) config.setLodBias(2.0f);
                 else config.setLodBias(0.5f);
                 config.setPreset(VergiumConfig.Preset.CUSTOM);
-                rebuildWidgets();
+                buildSettingsWidgets();
             }
         ).bounds(leftX, y, fullWidth, 20).build());
         y += 28;
@@ -262,7 +263,6 @@ public class VergiumSettingsScreen extends Screen {
     private int buildHeatWidgets(int y, int leftX, int rightX, int w) {
         int fullWidth = w * 2 + 10;
 
-        // Heat Management master toggle
         addRenderableWidget(new VergiumToggleButton(
             leftX, y, fullWidth, 20,
             "Heat Management",
@@ -271,7 +271,6 @@ public class VergiumSettingsScreen extends Screen {
         ));
         y += 28;
 
-        // Target FPS slider
         addRenderableWidget(new VergiumSlider(
             leftX, y, fullWidth, 20,
             "Target FPS",
@@ -281,7 +280,6 @@ public class VergiumSettingsScreen extends Screen {
         ));
         y += 28;
 
-        // CPU Usage Limit slider
         addRenderableWidget(new VergiumSlider(
             leftX, y, fullWidth, 20,
             "CPU Usage Limit",
@@ -291,7 +289,6 @@ public class VergiumSettingsScreen extends Screen {
         ));
         y += 28;
 
-        // Thermal Throttle toggle
         addRenderableWidget(new VergiumToggleButton(
             leftX, y, w, 20,
             "Thermal Throttle",
@@ -314,9 +311,6 @@ public class VergiumSettingsScreen extends Screen {
             val -> { config.setLazyChunkLoading(val); config.setPreset(VergiumConfig.Preset.CUSTOM); }
         ));
         y += 30;
-
-        // Show current system stats
-        y += 10;
 
         return y;
     }
@@ -344,12 +338,10 @@ public class VergiumSettingsScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
 
-        // Title
         graphics.drawCenteredString(this.font,
             Component.literal("Vergium Settings").withStyle(ChatFormatting.BOLD),
             this.width / 2, 8, 0xFFFFFF);
 
-        // Draw selected category indicator
         int tabWidth = 100;
         int tabSpacing = 5;
         int totalTabWidth = Category.values().length * (tabWidth + tabSpacing) - tabSpacing;
@@ -362,7 +354,6 @@ public class VergiumSettingsScreen extends Screen {
             }
         }
 
-        // Draw heat status info in heat category
         if (selectedCategory == Category.HEAT) {
             drawHeatInfo(graphics);
         }
@@ -377,42 +368,43 @@ public class VergiumSettingsScreen extends Screen {
         int infoY = this.height - 80;
         int infoX = this.width / 2 - 150;
 
-        var systemMonitor = instance.getSystemMonitor();
+        SystemMonitor systemMonitor = instance.getSystemMonitor();
+        if (systemMonitor == null) return;
+
+        SystemMonitor.ThermalState state = systemMonitor.getThermalState();
+        int stateColor;
+        switch (state) {
+            case COOL: stateColor = 0xFF44FF44; break;
+            case WARM: stateColor = 0xFFFFFF44; break;
+            case HOT: stateColor = 0xFFFF8844; break;
+            case THROTTLING: stateColor = 0xFFFF4444; break;
+            default: stateColor = 0xFFFFFFFF; break;
+        }
+
+        graphics.drawString(this.font,
+            Component.literal("System Status:"),
+            infoX, infoY, 0xAAAAAA);
+        infoY += 12;
+
+        graphics.drawString(this.font,
+            Component.literal(String.format("CPU: %.1f%%", systemMonitor.getCpuUsage())),
+            infoX, infoY, 0xFFFFFF);
+
+        graphics.drawString(this.font,
+            Component.literal(String.format("Memory: %dMB / %dMB",
+                systemMonitor.getUsedMemoryMB(), systemMonitor.getMaxMemoryMB())),
+            infoX + 120, infoY, 0xFFFFFF);
+        infoY += 12;
+
+        graphics.drawString(this.font,
+            Component.literal("Thermal: " + state.name()),
+            infoX, infoY, stateColor);
+
         var heatOpt = instance.getHeatOptimizer();
-
-        if (systemMonitor != null) {
-            SystemMonitor.ThermalState state = systemMonitor.getThermalState();
-            int stateColor = switch (state) {
-                case COOL -> 0xFF44FF44;
-                case WARM -> 0xFFFFFF44;
-                case HOT -> 0xFFFF8844;
-                case THROTTLING -> 0xFFFF4444;
-            };
-
+        if (heatOpt != null) {
             graphics.drawString(this.font,
-                Component.literal("System Status:"),
-                infoX, infoY, 0xAAAAAA);
-            infoY += 12;
-
-            graphics.drawString(this.font,
-                Component.literal(String.format("CPU: %.1f%%", systemMonitor.getCpuUsage())),
-                infoX, infoY, 0xFFFFFF);
-
-            graphics.drawString(this.font,
-                Component.literal(String.format("Memory: %dMB / %dMB",
-                    systemMonitor.getUsedMemoryMB(), systemMonitor.getMaxMemoryMB())),
+                Component.literal(String.format("Throttle: %.0f%%", heatOpt.getThrottleLevel() * 100)),
                 infoX + 120, infoY, 0xFFFFFF);
-            infoY += 12;
-
-            graphics.drawString(this.font,
-                Component.literal("Thermal: " + state.name()),
-                infoX, infoY, stateColor);
-
-            if (heatOpt != null) {
-                graphics.drawString(this.font,
-                    Component.literal(String.format("Throttle: %.0f%%", heatOpt.getThrottleLevel() * 100)),
-                    infoX + 120, infoY, 0xFFFFFF);
-            }
         }
     }
 
@@ -432,4 +424,4 @@ public class VergiumSettingsScreen extends Screen {
     public boolean isPauseScreen() {
         return false;
     }
-              }
+    }
