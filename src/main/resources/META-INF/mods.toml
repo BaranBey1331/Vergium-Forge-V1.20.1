@@ -1,0 +1,28 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="vergium"
+version="1.0.0"
+displayName="Vergium FPS Booster"
+description='''
+Vergium is a powerful FPS booster and heat optimization mod for Minecraft.
+It reduces CPU/GPU load, optimizes chunk rendering, entity processing, and particle systems.
+'''
+authors="Vergium Team"
+logoFile="assets/vergium/textures/gui/vergium_logo.png"
+
+[[dependencies.vergium]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.vergium]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1]"
+ordering="NONE"
+side="BOTH"
