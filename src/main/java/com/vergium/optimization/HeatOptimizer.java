@@ -13,10 +13,8 @@ public class HeatOptimizer {
     private final SystemMonitor systemMonitor;
     private int tickCounter = 0;
 
-    // Dynamic throttle level (0.0 = no throttle, 1.0 = max throttle)
     private double throttleLevel = 0.0;
 
-    // Frame timing control
     private long lastFrameEnd = 0;
     private long targetFrameTimeNs;
     private long additionalDelayNs = 0;
@@ -34,10 +32,8 @@ public class HeatOptimizer {
 
         tickCounter++;
 
-        // Update system monitor every tick
         systemMonitor.update();
 
-        // Recalculate throttle every second
         if (tickCounter % 20 == 0) {
             updateThrottleLevel();
         }
@@ -48,13 +44,12 @@ public class HeatOptimizer {
         if (!config.isHeatManagementEnabled()) return;
 
         if (event.phase == TickEvent.Phase.END) {
-            // Apply frame pacing delay if needed
             if (config.isFramePacing() && additionalDelayNs > 0) {
                 long now = System.nanoTime();
                 long elapsed = now - lastFrameEnd;
                 long sleepNs = additionalDelayNs - elapsed;
 
-                if (sleepNs > 1_000_000) { // Only sleep if > 1ms
+                if (sleepNs > 1_000_000) {
                     try {
                         Thread.sleep(sleepNs / 1_000_000, (int) (sleepNs % 1_000_000));
                     } catch (InterruptedException ignored) {}
@@ -69,24 +64,21 @@ public class HeatOptimizer {
         ThermalState thermalState = systemMonitor.getThermalState();
         int cpuLimit = config.getCpuUsageLimit();
 
-        // Base throttle on CPU usage vs limit
         double cpuThrottle = 0;
         if (cpuUsage > cpuLimit) {
             cpuThrottle = Math.min(1.0, (cpuUsage - cpuLimit) / (100.0 - cpuLimit));
         }
 
-        // Thermal throttle
         double thermalThrottle = 0;
         if (config.isThermalThrottle()) {
             switch (thermalState) {
-                case COOL -> thermalThrottle = 0;
-                case WARM -> thermalThrottle = 0.15;
-                case HOT -> thermalThrottle = 0.4;
-                case THROTTLING -> thermalThrottle = 0.7;
+                case COOL: thermalThrottle = 0; break;
+                case WARM: thermalThrottle = 0.15; break;
+                case HOT: thermalThrottle = 0.4; break;
+                case THROTTLING: thermalThrottle = 0.7; break;
             }
         }
 
-        // Memory pressure throttle
         double memoryThrottle = 0;
         MemoryOptimizer memOpt = Vergium.getInstance().getMemoryOptimizer();
         if (memOpt != null) {
@@ -97,23 +89,22 @@ public class HeatOptimizer {
             }
         }
 
-        // Combined throttle (smooth transition)
         double targetThrottle = Math.max(cpuThrottle, Math.max(thermalThrottle, memoryThrottle));
-        throttleLevel = throttleLevel * 0.8 + targetThrottle * 0.2; // Smooth
+        throttleLevel = throttleLevel * 0.8 + targetThrottle * 0.2;
 
-        // Calculate additional delay for frame pacing
         updateTargetFrameTime();
         if (throttleLevel > 0.1) {
-            // Add delay proportional to throttle level
-            long baseDelay = targetFrameTimeNs / 10; // 10% of frame time
+            long baseDelay = targetFrameTimeNs / 10;
             additionalDelayNs = (long) (baseDelay * throttleLevel);
         } else {
             additionalDelayNs = 0;
         }
 
         if (throttleLevel > 0.3) {
-            Vergium.LOGGER.debug("Heat throttle active: {:.1f}% (CPU: {:.1f}%, Thermal: {})",
-                throttleLevel * 100, cpuUsage, thermalState);
+            Vergium.LOGGER.debug("Heat throttle active: {}% (CPU: {}%, Thermal: {})",
+                String.format("%.1f", throttleLevel * 100),
+                String.format("%.1f", cpuUsage),
+                thermalState);
         }
     }
 
@@ -133,10 +124,6 @@ public class HeatOptimizer {
         return throttleLevel > 0.6;
     }
 
-    /**
-     * Get a multiplier for various rendering limits.
-     * 1.0 = normal, lower = more aggressive reduction
-     */
     public float getPerformanceMultiplier() {
         return (float) Math.max(0.25, 1.0 - throttleLevel * 0.75);
     }
