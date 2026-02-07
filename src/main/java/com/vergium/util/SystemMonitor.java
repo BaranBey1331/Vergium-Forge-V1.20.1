@@ -11,13 +11,13 @@ public class SystemMonitor {
 
     private final OperatingSystemMXBean osBean;
     private final MemoryMXBean memoryBean;
+    private final boolean hasSunBean;
 
     private double cpuUsage;
     private long usedMemoryMB;
     private long maxMemoryMB;
     private long allocatedMemoryMB;
 
-    // Estimated thermal state
     public enum ThermalState {
         COOL, WARM, HOT, THROTTLING
     }
@@ -27,13 +27,21 @@ public class SystemMonitor {
     private long lastUpdateTime = 0;
     private static final long UPDATE_INTERVAL_MS = 1000;
 
-    // Track sustained high CPU for thermal estimation
-    private final double[] cpuHistory = new double[30]; // 30 seconds of history
+    private final double[] cpuHistory = new double[30];
     private int cpuHistoryIndex = 0;
 
     public SystemMonitor() {
         osBean = ManagementFactory.getOperatingSystemMXBean();
         memoryBean = ManagementFactory.getMemoryMXBean();
+
+        boolean sunAvailable = false;
+        try {
+            Class.forName("com.sun.management.OperatingSystemMXBean");
+            sunAvailable = osBean instanceof com.sun.management.OperatingSystemMXBean;
+        } catch (ClassNotFoundException e) {
+            sunAvailable = false;
+        }
+        hasSunBean = sunAvailable;
     }
 
     public void update() {
@@ -42,12 +50,19 @@ public class SystemMonitor {
         lastUpdateTime = now;
 
         // CPU usage
-        if (osBean instanceof com.sun.management.OperatingSystemMXBean sunBean) {
+        if (hasSunBean) {
+            com.sun.management.OperatingSystemMXBean sunBean =
+                (com.sun.management.OperatingSystemMXBean) osBean;
             cpuUsage = sunBean.getProcessCpuLoad() * 100.0;
             if (cpuUsage < 0) cpuUsage = 0;
         } else {
-            cpuUsage = osBean.getSystemLoadAverage() / osBean.getAvailableProcessors() * 100.0;
-            if (cpuUsage < 0) cpuUsage = estimatedLoad;
+            double loadAvg = osBean.getSystemLoadAverage();
+            int processors = osBean.getAvailableProcessors();
+            if (loadAvg >= 0 && processors > 0) {
+                cpuUsage = loadAvg / processors * 100.0;
+            } else {
+                cpuUsage = estimatedLoad;
+            }
         }
 
         // Memory
@@ -56,11 +71,10 @@ public class SystemMonitor {
         maxMemoryMB = heapUsage.getMax() / (1024 * 1024);
         allocatedMemoryMB = heapUsage.getCommitted() / (1024 * 1024);
 
-        // CPU history for thermal estimation
+        // CPU history
         cpuHistory[cpuHistoryIndex % cpuHistory.length] = cpuUsage;
         cpuHistoryIndex++;
 
-        // Estimate thermal state based on sustained CPU usage
         updateThermalState();
     }
 
@@ -77,7 +91,6 @@ public class SystemMonitor {
         }
         avgCpu /= samples;
 
-        // Also check recent trend (last 5 seconds)
         int recentSamples = Math.min(5, samples);
         double recentAvg = 0;
         for (int i = 0; i < recentSamples; i++) {
@@ -88,10 +101,11 @@ public class SystemMonitor {
 
         estimatedLoad = recentAvg;
 
-        // Memory pressure factor
-        double memoryPressure = (double) usedMemoryMB / maxMemoryMB;
+        double memoryPressure = 0;
+        if (maxMemoryMB > 0) {
+            memoryPressure = (double) usedMemoryMB / maxMemoryMB;
+        }
 
-        // Combined thermal score
         double thermalScore = avgCpu * 0.4 + recentAvg * 0.4 + memoryPressure * 100 * 0.2;
 
         if (thermalScore > 90) {
