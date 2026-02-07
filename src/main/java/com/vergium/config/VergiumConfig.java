@@ -6,13 +6,11 @@ public class VergiumConfig {
         LOW, MEDIUM, HIGH, CUSTOM
     }
 
-    // General
     private boolean fpsBoostEnabled = true;
     private boolean showFpsOverlay = true;
     private boolean showPerformanceMetrics = false;
     private Preset preset = Preset.MEDIUM;
 
-    // Performance toggles
     private boolean chunkOptimization = true;
     private boolean entityOptimization = true;
     private boolean particleOptimization = true;
@@ -20,23 +18,20 @@ public class VergiumConfig {
     private boolean tickOptimization = true;
     private boolean memoryOptimization = true;
 
-    // Rendering sliders
-    private int entityRenderDistance = 48; // blocks
+    private int entityRenderDistance = 48;
     private int maxParticles = 2000;
     private int chunkUpdateLimit = 5;
-    private float lodBias = 1.0f; // 0.5 = aggressive, 1.0 = normal, 2.0 = quality
-    private int cullDistance = 64; // blocks
+    private float lodBias = 1.0f;
+    private int cullDistance = 64;
 
-    // Heat management
     private boolean heatManagementEnabled = true;
     private int targetFps = 60;
-    private int cpuUsageLimit = 80; // percentage
+    private int cpuUsageLimit = 80;
     private boolean thermalThrottle = true;
     private boolean framePacing = true;
     private boolean lazyChunkLoading = true;
     private boolean aggressiveCulling = false;
 
-    // Getters and setters
     public boolean isFpsBoostEnabled() { return fpsBoostEnabled; }
     public void setFpsBoostEnabled(boolean v) { this.fpsBoostEnabled = v; }
 
