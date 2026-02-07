@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.vergium.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "vergium.refmap.json",
+  "client": [
+    "MixinLevelRenderer",
+    "MixinMinecraft",
+    "MixinParticleEngine",
+    "MixinEntityRenderer",
+    "MixinBlockEntityRenderer",
+    "MixinGameRenderer",
+    "MixinChunkRenderDispatcher",
+    "MixinWindow"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
