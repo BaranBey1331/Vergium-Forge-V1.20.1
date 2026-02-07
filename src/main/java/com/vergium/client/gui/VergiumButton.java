@@ -1,5 +1,6 @@
 package com.vergium.client.gui;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
@@ -11,7 +12,7 @@ public class VergiumButton extends Button {
 
     public VergiumButton(int x, int y, int width, int height, Component message,
                           OnPress onPress, int baseColor, int hoverColor) {
-        super(Button.builder(message, onPress).bounds(x, y, width, height));
+        super(x, y, width, height, message, onPress, DEFAULT_NARRATION);
         this.baseColor = baseColor;
         this.hoverColor = hoverColor;
     }
@@ -21,12 +22,10 @@ public class VergiumButton extends Button {
         boolean hovered = this.isHoveredOrFocused();
         int color = hovered ? hoverColor : baseColor;
 
-        // Background
         graphics.fill(this.getX(), this.getY(),
             this.getX() + this.getWidth(), this.getY() + this.getHeight(),
             0xAA000000);
 
-        // Border
         int borderColor = hovered ? 0xFFFFFFFF : color;
         graphics.fill(this.getX(), this.getY(),
             this.getX() + this.getWidth(), this.getY() + 1, borderColor);
@@ -37,8 +36,7 @@ public class VergiumButton extends Button {
         graphics.fill(this.getX() + this.getWidth() - 1, this.getY(),
             this.getX() + this.getWidth(), this.getY() + this.getHeight(), borderColor);
 
-        // Text
-        graphics.drawCenteredString(net.minecraft.client.Minecraft.getInstance().font,
+        graphics.drawCenteredString(Minecraft.getInstance().font,
             this.getMessage(),
             this.getX() + this.getWidth() / 2,
             this.getY() + (this.getHeight() - 8) / 2,
