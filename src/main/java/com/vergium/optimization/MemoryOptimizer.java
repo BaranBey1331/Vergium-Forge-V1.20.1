@@ -10,9 +10,8 @@ public class MemoryOptimizer {
     private final VergiumConfig config;
     private int tickCounter = 0;
     private long lastGCTime = 0;
-    private static final long MIN_GC_INTERVAL_MS = 30_000; // 30 seconds minimum between GC hints
+    private static final long MIN_GC_INTERVAL_MS = 30_000;
 
-    // Memory thresholds
     private static final double HIGH_MEMORY_THRESHOLD = 0.85;
     private static final double CRITICAL_MEMORY_THRESHOLD = 0.95;
 
@@ -30,7 +29,6 @@ public class MemoryOptimizer {
 
         tickCounter++;
 
-        // Check memory every 5 seconds
         if (tickCounter % 100 == 0) {
             checkMemory();
         }
@@ -49,12 +47,14 @@ public class MemoryOptimizer {
         if (criticalMemory) {
             long now = System.currentTimeMillis();
             if (now - lastGCTime > MIN_GC_INTERVAL_MS) {
-                Vergium.LOGGER.warn("Memory critically high ({:.1f}%), suggesting GC", usage * 100);
+                Vergium.LOGGER.warn("Memory critically high ({}%), suggesting GC",
+                    String.format("%.1f", usage * 100));
                 System.gc();
                 lastGCTime = now;
             }
         } else if (highMemory && !wasHighMemory) {
-            Vergium.LOGGER.info("Memory usage high ({:.1f}%), enabling aggressive optimizations", usage * 100);
+            Vergium.LOGGER.info("Memory usage high ({}%), enabling aggressive optimizations",
+                String.format("%.1f", usage * 100));
         }
     }
 
