@@ -25,7 +25,18 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Cache Gradle and Minecraft assets
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Generate Gradle wrapper if missing
+        run: |
+          if [ ! -f "gradlew" ]; then
+            echo "Gradle wrapper not found, generating..."
+            gradle wrapper --gradle-version 8.1.1
+          fi
+          chmod +x gradlew
+
+      - name: Cache Minecraft assets
         uses: actions/cache@v4
         with:
           path: |
@@ -35,9 +46,6 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/gradle.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
 
       - name: Build JAR with Gradle
         run: ./gradlew build --no-daemon --stacktrace
