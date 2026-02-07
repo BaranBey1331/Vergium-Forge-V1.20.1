@@ -29,17 +29,18 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.1.1'
+          cache-disabled: true
 
-      - name: Cache Minecraft assets
+      - name: Manual cache
         uses: actions/cache@v4
+        continue-on-error: true
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-            build/fg_cache
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle.properties') }}
+          key: ${{ runner.os }}-gradle-manual-${{ hashFiles('**/*.gradle*', '**/gradle.properties') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-
+            ${{ runner.os }}-gradle-manual-
 
       - name: Build JAR
         run: gradle build --no-daemon --stacktrace
